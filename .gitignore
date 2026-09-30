@@ -1,0 +1,24 @@
+# Virtual Environment & Python cache
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# macOS system files
+.DS_Store
+
+# Environment & credentials
+.env
+
+# Large raw PDF storage (keep repo lightweight)
+Financial_Recording_pdfs
+Management_reports
+
+# Analytical databases & logs
+*.duckdb
+*.duckdb.wal
+logs/
+.pytest_cache/
