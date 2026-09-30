@@ -1,4 +1,4 @@
-# Virtual Environment & Python cache
+# Python
 .venv/
 __pycache__/
 *.py[cod]
@@ -7,20 +7,20 @@ __pycache__/
 dist/
 build/
 
-# macOS system files
+# OS
 .DS_Store
 
-# Environment & credentials
+# Environment
 .env
 
-# Private notes & interview defense
+# Private notes
 PROJECT_DEFENSE_BIBLE.md
 
-# Large raw PDF storage (keep repo lightweight)
+# Raw data & PDFs
 Financial_Recording_pdfs
 Management_reports
 
-# Analytical databases & logs
+# Databases & logs
 *.duckdb
 *.duckdb.wal
 logs/

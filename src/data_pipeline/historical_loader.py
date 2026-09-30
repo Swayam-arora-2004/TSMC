@@ -1,7 +1,6 @@
 """
 Historical financial data loader for TSMC (2012-2026).
-Combines multi-year headline financials (Revenue, CapEx, Margins) with
-granular segment data (HPC, Smartphone, Automotive, IoT).
+Combines headline quarterly financials with granular platform segments.
 """
 
 from pathlib import Path
@@ -12,27 +11,21 @@ from config.settings import DATASET_DIR, PROCESSED_DATA_DIR, TSMC_US_TICKER, TSM
 
 
 def load_platform_metrics() -> pd.DataFrame:
-    """
-    Loads and cleans the granular quarterly platform metrics (2023-2026).
-    Handles stringified numbers, commas, and percentage formats.
-    """
+    """Loads and standardizes quarterly platform metrics (2023-2026)."""
     csv_path = DATASET_DIR / "tsmc_platform_metrics.csv"
     if not csv_path.exists():
         raise FileNotFoundError(f"Platform metrics dataset not found at {csv_path}")
 
     df = pd.read_csv(csv_path)
-
-    # Clean column names
     df.columns = [col.strip().lower() for col in df.columns]
 
-    # Clean numeric columns containing commas or strings
     numeric_cols = ["platform_share_ptc", "platform_rev_usd_m", "total_capex_usd_m", "gross_margin_ptc"]
     for col in numeric_cols:
         if col in df.columns:
             df[col] = df[col].astype(str).str.replace(",", "").str.strip()
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # Standardize quarter-year formatting (e.g. Q1-2023 -> 2023Q1)
+    # Format quarter-year keys (e.g. Q1-2023 -> 2023-Q1)
     df["quarter_clean"] = df["quater_year"].str.replace("-", "")
     parts = df["quater_year"].str.split("-", expand=True)
     if parts.shape[1] == 2:
@@ -44,17 +37,11 @@ def load_platform_metrics() -> pd.DataFrame:
 
 
 def load_long_term_financial_history() -> pd.DataFrame:
-    """
-    Compiles 14-year (2012-2026) verified quarterly historical headline financials
-    including CapEx, Revenue, Gross Margin, and Technology Node milestones.
-    """
-    # Baseline verified historical quarterly telemetry (2012 - 2026)
-    # Reflecting key historical eras: 28nm mobile boom, 16/10nm Apple ramp, 7nm EUV rollout, 5nm/3nm AI wave
+    """Compiles 14-year (2012-2026) quarterly financials and technology node progression."""
     records = []
     
-    # 2012-2022 historical benchmarks (annualized to quarterly estimates & actual reported figures)
+    # Quarterly benchmarks: (Year, Quarter, Revenue USD M, CapEx USD M, Gross Margin %, Node, Catalyst)
     historical_benchmarks = [
-        # (Year, Q, Rev_USD_M, CapEx_USD_M, GrossMargin_Pct, Dominant_Node, Core_Driver)
         (2012, "Q1", 3550, 2100, 47.7, "28nm", "Smartphone (Qualcomm/Apple A6)"),
         (2012, "Q2", 4280, 2400, 48.6, "28nm", "Smartphone ramp"),
         (2012, "Q3", 4710, 2300, 48.8, "28nm", "Mobile 3G/4G"),
@@ -116,7 +103,7 @@ def load_long_term_financial_history() -> pd.DataFrame:
 
     hist_df = pd.DataFrame(records)
 
-    # Now integrate the 2023-2026 data from granular metrics
+    # Aggregate 2023-2026 data from platform metrics
     platform_df = load_platform_metrics()
     quarterly_summary = platform_df.groupby("period").agg({
         "year": "first",
@@ -131,7 +118,6 @@ def load_long_term_financial_history() -> pd.DataFrame:
         "gross_margin_ptc": "gross_margin_pct"
     }, inplace=True)
 
-    # Node progression annotation for recent supercycle
     def assign_recent_node(period_str):
         if "2023" in period_str:
             return "3nm ramp / 5nm mature", "GenAI launch (Nvidia H100)"
@@ -150,22 +136,19 @@ def load_long_term_financial_history() -> pd.DataFrame:
         (quarterly_summary["total_capex_usd_m"] / quarterly_summary["total_revenue_usd_m"]) * 100
     ).round(2)
 
-    # Concatenate 2012-2022 with 2023-2026
     full_df = pd.concat([hist_df, quarterly_summary], ignore_index=True)
     full_df.sort_values(by=["year", "quarter"], inplace=True)
     full_df.reset_index(drop=True, inplace=True)
 
-    # Save processed historical dataset
     output_path = PROCESSED_DATA_DIR / "tsmc_historical_financials_2012_2026.parquet"
     full_df.to_parquet(output_path, index=False)
-    print(f"Successfully generated 14-year dataset: {output_path} ({len(full_df)} quarters)")
+    print(f"Generated 14-year dataset: {output_path} ({len(full_df)} quarters)")
 
     return full_df
 
 
 if __name__ == "__main__":
-    print("Testing data ingestion...")
     p_df = load_platform_metrics()
-    print(f"Loaded platform metrics: {p_df.shape[0]} rows across {p_df['quater_year'].nunique()} quarters.")
+    print(f"Loaded platform metrics: {p_df.shape[0]} rows ({p_df['quater_year'].nunique()} quarters).")
     h_df = load_long_term_financial_history()
-    print(f"Loaded full historical series: {h_df.shape[0]} quarters (from {h_df['period'].iloc[0]} to {h_df['period'].iloc[-1]})")
+    print(f"Loaded financial series: {h_df.shape[0]} quarters ({h_df['period'].iloc[0]} to {h_df['period'].iloc[-1]}).")

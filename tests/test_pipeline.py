@@ -1,16 +1,16 @@
 """
-Unit and integration tests for TSMC data pipeline and warehouse.
+Unit and integration tests for data pipeline and warehouse.
 """
 
 import pytest
 import pandas as pd
-from config.settings import DUCKDB_PATH, PROCESSED_DATA_DIR
+from config.settings import DUCKDB_PATH
 from src.data_pipeline.historical_loader import load_platform_metrics, load_long_term_financial_history
 from src.data_pipeline.warehouse import initialize_warehouse, query_warehouse
 
 
 def test_platform_metrics_cleaning():
-    """Verify that platform metrics are cleaned without trailing commas or invalid types."""
+    """Verify platform metrics cleaning and data types."""
     df = load_platform_metrics()
     assert not df.empty, "Platform metrics DataFrame should not be empty"
     assert "platform_rev_usd_m" in df.columns
@@ -31,15 +31,13 @@ def test_long_term_historical_series():
 
 
 def test_duckdb_warehouse_schema():
-    """Verify that DuckDB Star Schema and analytical views build accurately."""
+    """Verify DuckDB star schema tables and views."""
     initialize_warehouse()
     assert DUCKDB_PATH.exists(), "DuckDB file should exist on disk"
 
-    # Query fact table
     qf = query_warehouse("SELECT count(*) as cnt FROM fact_quarterly_financials")
     assert qf["cnt"].iloc[0] >= 56
 
-    # Query analytical view
     view_df = query_warehouse("""
         SELECT time_key, platform_name, platform_share_pct, gross_margin_pct
         FROM v_platform_financial_telemetry

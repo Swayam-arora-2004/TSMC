@@ -1,28 +1,26 @@
 """
-Styling and plotting utilities for TSMC Institutional Research.
-Provides high-contrast, publication-grade dark themes for Plotly and Matplotlib.
+Plotting styles and color definitions for charts.
 """
 
 import plotly.io as pio
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 
-# Color Palette: Institutional Semiconductor Theme
 COLORS = {
-    "background": "#0f172a",       # Slate 900
-    "card": "#1e293b",             # Slate 800
-    "text": "#f8fafc",             # Slate 50
-    "muted": "#94a3b8",            # Slate 400
-    "grid": "#334155",             # Slate 700
-    "hpc_cyan": "#06b6d4",         # Cyan 500 (AI/HPC)
-    "phone_purple": "#8b5cf6",     # Violet 500 (Smartphone)
-    "iot_green": "#10b981",        # Emerald 500 (IoT)
-    "auto_amber": "#f59e0b",       # Amber 500 (Automotive)
-    "capex_rose": "#f43f5e",       # Rose 500 (CapEx)
-    "margin_emerald": "#34d399",   # Emerald 400 (Margin)
+    "background": "#0f172a",
+    "card": "#1e293b",
+    "text": "#f8fafc",
+    "muted": "#94a3b8",
+    "grid": "#334155",
+    "hpc_cyan": "#06b6d4",
+    "phone_purple": "#8b5cf6",
+    "iot_green": "#10b981",
+    "auto_amber": "#f59e0b",
+    "capex_rose": "#f43f5e",
+    "margin_emerald": "#34d399",
 }
 
-# Define custom Plotly dark template
+# Dark theme template for Plotly
 tsmc_plotly_template = go.layout.Template(
     layout=go.Layout(
         paper_bgcolor=COLORS["background"],
@@ -59,7 +57,7 @@ pio.templates.default = "tsmc_dark"
 
 
 def set_matplotlib_style():
-    """Sets a sleek dark theme for Matplotlib/Seaborn figures."""
+    """Applies dark styling to Matplotlib figures."""
     plt.style.use("dark_background")
     plt.rcParams.update({
         "figure.facecolor": COLORS["background"],

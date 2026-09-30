@@ -1,6 +1,5 @@
 """
-Automated Data Quality & PDF Audit Engine.
-Cross-validates CSV platform metrics against raw TSMC Management Report PDFs.
+Audits platform financial metrics against TSMC management report PDFs.
 """
 
 import re
@@ -9,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import pypdf
 
-# Ensure project root is in sys.path when executed directly
+# Add project root to sys.path when run directly
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -21,24 +20,18 @@ MANAGEMENT_REPORTS_DIR = PROJECT_ROOT / "Management_reports"
 
 
 def extract_metrics_from_pdf(pdf_path: Path) -> dict:
-    """
-    Parses a TSMC Management Report PDF and extracts:
-    - Gross Margin (%)
-    - Platform percentage breakdown (HPC, Smartphone, IoT, Automotive, DCE)
-    """
+    """Extracts gross margin and platform percentage breakdown from a PDF report."""
     reader = pypdf.PdfReader(str(pdf_path))
     full_text = ""
-    for page in reader.pages[:3]:  # Financial highlights and platform tables are on pages 1-3
+    for page in reader.pages[:3]:
         full_text += page.extract_text() + "\n"
 
     extracted = {"gross_margin": None, "platforms": {}}
 
-    # 1. Extract Gross Margin: e.g. "Gross margin was 56.3%"
     gm_match = re.search(r"Gross margin (?:was )?([0-9]+\.[0-9]+)%", full_text, re.IGNORECASE)
     if gm_match:
         extracted["gross_margin"] = float(gm_match.group(1))
 
-    # 2. Extract Platform percentages from the breakdown table / text
     platform_patterns = {
         "HPC": r"(?:High Performance Computing|HPC)\s+([0-9]+)%",
         "Smartphone": r"Smartphone\s+([0-9]+)%",
@@ -56,13 +49,10 @@ def extract_metrics_from_pdf(pdf_path: Path) -> dict:
 
 
 def audit_dataset_against_pdfs():
-    """
-    Reconciles tsmc_platform_metrics.csv against all available PDF reports.
-    Outputs an institutional Audit & Reconciliation Report.
-    """
-    print("=" * 75)
-    print("TSMC DATA INTEGRITY AUDIT: RAW PDFS VS. ANALYTICAL DATASET")
-    print("=" * 75)
+    """Reconciles platform CSV metrics with available quarterly PDF reports."""
+    print("=" * 70)
+    print("TSMC DATA AUDIT: PDF REPORTS VS CSV DATASET")
+    print("=" * 70)
 
     df = load_platform_metrics()
     pdf_files = sorted(list(MANAGEMENT_REPORTS_DIR.glob("*Management*Report*.pdf")))
@@ -76,7 +66,6 @@ def audit_dataset_against_pdfs():
     passed_checks = 0
 
     for pdf_path in pdf_files:
-        # Extract quarter tag from filename: e.g. 1Q23 -> Q1-2023
         match = re.search(r"([1-4])Q([0-9]{2})", pdf_path.name)
         if not match:
             continue
@@ -90,7 +79,7 @@ def audit_dataset_against_pdfs():
         if csv_quarter.empty:
             continue
 
-        # Audit Gross Margin
+        # Verify gross margin
         csv_gm = csv_quarter["gross_margin_ptc"].iloc[0]
         pdf_gm = pdf_data["gross_margin"]
 
@@ -104,7 +93,7 @@ def audit_dataset_against_pdfs():
         else:
             gm_match_status = "PDF UNPARSED"
 
-        # Audit Platforms
+        # Verify platform revenue share
         for plat, pdf_pct in pdf_data["platforms"].items():
             csv_row = csv_quarter[csv_quarter["business_platform"] == plat]
             if not csv_row.empty:
@@ -136,9 +125,9 @@ def audit_dataset_against_pdfs():
     print(audit_df.to_string(index=False))
 
     accuracy_pct = (passed_checks / total_checks) * 100 if total_checks > 0 else 0
-    print("\n" + "=" * 75)
-    print(f"AUDIT SUMMARY: {passed_checks}/{total_checks} verified checks passed ({accuracy_pct:.1f}% Data Accuracy).")
-    print("=" * 75)
+    print("\n" + "=" * 70)
+    print(f"AUDIT SUMMARY: {passed_checks}/{total_checks} checks passed ({accuracy_pct:.1f}% accuracy).")
+    print("=" * 70)
 
 
 if __name__ == "__main__":
